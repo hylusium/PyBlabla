@@ -6,7 +6,7 @@ async def send_message():
     uri = "ws://90.5.227.209:8765"
     async with websockets.connect(uri) as websocket:
         # Envoyer un message au serveur
-        message = "Salut, serveur !"
+        message = input("entrer votre message a envoyer : ")
         await websocket.send(message)
         print(f"Message envoyé : {message}")
 
