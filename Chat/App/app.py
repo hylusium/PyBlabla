@@ -20,7 +20,7 @@ def demanderNomUser():
 nomUtilisateur = demanderNomUser()
 
 async def send_message_to_server(message):
-    uri = "ws://192.168.1.34:8765"
+    uri = "ws://90.5.227.209:8765"
     async with websockets.connect(uri) as websocket:
         await websocket.send(message)
         response = await websocket.recv()
