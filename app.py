@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import simpledialog,messagebox
 
 root = tk.Tk()
-root.title("Chat Bx Python")
+root.title("Chat Box Python")
 root.geometry("400x300")
 
 
