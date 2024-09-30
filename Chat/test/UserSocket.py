@@ -1,8 +1,10 @@
+
 import asyncio
 import websockets
 
 async def send_message():
-        uri = "ws://90.5.227.209:8765"    
+    uri = "ws://90.5.227.209:8765"
+    async with websockets.connect(uri) as websocket:
         # Envoyer un message au serveur
         message = "Salut, serveur !"
         await websocket.send(message)
@@ -13,4 +15,4 @@ async def send_message():
         print(f"Réponse du serveur : {response}")
 
 # Lancer le client
-asyncio.get_event_loop().run_until_complete(send_message())
+asyncio.run(send_message())
