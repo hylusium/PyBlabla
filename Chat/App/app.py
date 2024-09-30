@@ -29,9 +29,9 @@ async def send_message_to_server(message):
 async def messageAEnvoyer():
     messageUser = messageUser_box.get().strip()
     if messageUser:
-        chatBox.config(state=tk.NORMAL)  # Temporarily enable the chat box
+        chatBox.config(state=tk.NORMAL)
         chatBox.insert(tk.END, f"{nomUtilisateur}: {messageUser}\n")
-        chatBox.config(state=tk.DISABLED)  # Disable it again after inserting
+        chatBox.config(state=tk.DISABLED)
         try:
             response = await send_message_to_server(messageUser)
             chatBox.config(state=tk.NORMAL)
@@ -48,16 +48,19 @@ def start_asyncio_loop():
     loop.run_forever()
 
 def run_coroutine(coroutine):
-    asyncio.run_coroutine_threadsafe(coroutine, asyncio.get_event_loop())
+    loop = asyncio.get_event_loop()
+    asyncio.run_coroutine_threadsafe(coroutine, loop)
 
-threading.Thread(target=start_asyncio_loop, daemon=True).start()
+# Start the asyncio event loop in a separate thread
+asyncio_thread = threading.Thread(target=start_asyncio_loop, daemon=True)
+asyncio_thread.start()
 
 chatBoxLabel = tk.Label(root, text="Chatbox:")
 chatBoxLabel.pack(pady=5)
 
 chatBox = tk.Text(root, height=6, width=40)
 chatBox.pack(pady=5)
-chatBox.config(state=tk.DISABLED)  # Make the chatbox read-only for the user
+chatBox.config(state=tk.DISABLED)
 
 messageUser_label = tk.Label(root, text="Message à envoyer :")
 messageUser_label.pack(pady=5)
