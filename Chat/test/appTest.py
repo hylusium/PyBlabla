@@ -1,54 +1,49 @@
-#def demanderNomUser():
-#    nomUtilisateur = None
-#    while not nomUtilisateur:
-#        nomUtilisateur = simpledialog.askstring("Nom d'utilisateur", "Entrez un nom d'utilisateur :")
-#        if not nomUtilisateur:
-#            messagebox.showwarning("Input Error", "Vous devez renseigner un nom d'utilisateur")
-#    return nomUtilisateur
-
-#nomUtilisateur = demanderNomUser()
-# #message = await asyncio.to_thread(f"{nomUtilisateur}: {messageUser}\n")
-        #messageUser = messageUser_box.get().strip()
-        #message = await asyncio.to_thread(f"{messageUser}\n")
-
 import customtkinter as ctk
-from tkinter import messagebox
 import asyncio
 import websockets
+import threading
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 root = ctk.CTk()
-root.title("Chat Bx Python")
-root.geometry("400x400")
+root.title("Chat Python")
+root.geometry("600x400")
+root.resizable(True, True)
 
+nomUtilisateur = ""
 websocket = None
-nomUtilisateur = "Julio"
+messageUser = None
+connected_users = []
+selected_user = None  # To hold the currently selected user for private messaging
 
-async def send_message():
-    global websocket
-    messageUser = messageUser_box.get().strip()
-    if messageUser:
-        message = f"{nomUtilisateur}: {messageUser}\n"
+async def send_messages(recipient=None):
+    global websocket, messageUser
+    if websocket and messageUser:
+        if recipient:
+            message = f"@{recipient}: {messageUser}\n"
+        else:
+            message = f"{nomUtilisateur}: {messageUser}\n"
+        chatBox.configure(state="normal")
+        chatBox.insert(ctk.END, f"{message}\n")
+        chatBox.configure(state="disabled")
         await websocket.send(message)
         print(f"Message envoyé : {message}")
-        chatBox.configure(state="normal")
-        chatBox.insert(ctk.END, message)
-        chatBox.configure(state="disabled")
-        messageUser_box.delete(0, ctk.END)
-    else:
-        messagebox.showwarning("Input Error", "Vous ne pouvez pas envoyer un message vide !")
 
 async def receive_messages():
-    global websocket
+    global websocket, connected_users
     while True:
         try:
             response = await websocket.recv()
-            print(f"Message reçu du serveur : {response}")
-            chatBox.configure(state="normal")
-            chatBox.insert(ctk.END, f"Serveur: {response}\n")
-            chatBox.configure(state="disabled")
+            if response.startswith("USER_LIST:"):
+                users = response[len("USER_LIST:"):].split(",")
+                connected_users = [user for user in users if user != nomUtilisateur]
+                update_user_list()
+            else:
+                print(f"Message reçu du serveur : {response}")
+                chatBox.configure(state="normal")
+                chatBox.insert(ctk.END, f"{response}\n")
+                chatBox.configure(state="disabled")
         except websockets.ConnectionClosed:
             print("Connexion fermée par le serveur.")
             break
@@ -57,43 +52,97 @@ async def communicate():
     global websocket
     uri = "ws://90.5.227.209:8765"
     try:
-        async with websockets.connect(uri) as ws:
-            websocket = ws
-            receive_task = asyncio.create_task(receive_messages())
-            await receive_task
+        websocket = await websockets.connect(uri)
+        print("Connexion établie.")
+        await websocket.send(f"JOIN {nomUtilisateur}")
+        asyncio.create_task(receive_messages())
     except Exception as e:
         print(f"Erreur de connexion : {e}")
 
-def envoyer_message():
-    asyncio.create_task(send_message())
+def messageAEnvoyer():
+    global messageUser
+    messageUser = messageUser_box.get().strip()
+    if messageUser:
+        messageUser_box.delete(0, ctk.END)
+        asyncio.run_coroutine_threadsafe(send_messages(selected_user), asyncio_loop)
+    else:
+        ctk.CTkMessagebox.show_warning("Input Error", "Vous ne pouvez pas envoyer un message vide !")
 
-def start_async_loop():
-    try:
-        asyncio.get_running_loop().run_forever()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_forever()
+def start_asyncio_loop(loop):
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
 
-def async_communicate_wrapper():
-    asyncio.create_task(communicate())
-    root.after(100, async_communicate_wrapper)
+asyncio_loop = asyncio.new_event_loop()
+threading.Thread(target=start_asyncio_loop, args=(asyncio_loop,), daemon=True).start()
 
-chatBoxLabel = ctk.CTkLabel(root, text="Chatbox:")
+def start_communication():
+    asyncio.run_coroutine_threadsafe(communicate(), asyncio_loop)
+
+def ask_for_nickname():
+    def submit_nickname():
+        global nomUtilisateur
+        entered_nickname = nickname_entry.get().strip()
+        if entered_nickname:
+            nomUtilisateur = entered_nickname
+            nickname_window.destroy()
+        else:
+            ctk.CTkMessagebox.show_warning("Input Error", "Vous devez entrer un pseudo valide!")
+
+    nickname_window = ctk.CTkToplevel(root)
+    nickname_window.title("Enter Nickname")
+    nickname_window.geometry("300x150")
+
+    ctk.CTkLabel(nickname_window, text="Entrez votre pseudo :").pack(pady=10)
+    nickname_entry = ctk.CTkEntry(nickname_window)
+    nickname_entry.pack(pady=5)
+
+    submit_button = ctk.CTkButton(nickname_window, text="Submit", command=submit_nickname)
+    submit_button.pack(pady=10)
+
+    nickname_window.grab_set()
+    nickname_window.transient(root)
+
+def update_user_list():
+    user_listbox.configure(state="normal")
+    user_listbox.delete(1.0, ctk.END)
+    for user in connected_users:
+        user_listbox.insert(ctk.END, user + "\n")  # Insert user names
+    user_listbox.configure(state="disabled")
+
+def on_user_select(event):
+    global selected_user
+    index = user_listbox.index("@%s,%s" % (event.x, event.y))
+    user_name = user_listbox.get("1.0", "end-1c").splitlines()[index]  # Get the user at the clicked index
+    selected_user = user_name
+    print(f"Selected user: {selected_user}")  # For debugging
+
+chat_frame = ctk.CTkFrame(root)
+chat_frame.pack(side=ctk.RIGHT, fill=ctk.BOTH, expand=True, padx=10, pady=10)
+
+user_frame = ctk.CTkFrame(root)
+user_frame.pack(side=ctk.LEFT, fill=ctk.Y, padx=10, pady=10)
+
+user_listbox = ctk.CTkTextbox(user_frame, height=300, width=150, state="disabled")  # User list in a CTkTextbox
+user_listbox.pack(pady=5)
+
+user_listbox.bind("<Button-1>", on_user_select)  # Bind mouse click event to select user
+
+chatBoxLabel = ctk.CTkLabel(chat_frame, text="Chatbox:")
 chatBoxLabel.pack(pady=5)
 
-chatBox = ctk.CTkTextbox(root, height=200, width=350, state="disabled")
-chatBox.pack(pady=5)
+chatBox = ctk.CTkTextbox(chat_frame, height=200, width=350, state="disabled")
+chatBox.pack(pady=5, fill=ctk.BOTH, expand=True)
 
-messageUser_label = ctk.CTkLabel(root, text="Message à envoyer :")
+messageUser_label = ctk.CTkLabel(chat_frame, text="Message à envoyer :")
 messageUser_label.pack(pady=5)
 
-messageUser_box = ctk.CTkEntry(root, width=350)
+messageUser_box = ctk.CTkEntry(chat_frame, width=350)
 messageUser_box.pack(pady=5)
 
-envoyer_button = ctk.CTkButton(root, text="Envoyer", command=envoyer_message)
+envoyer_button = ctk.CTkButton(chat_frame, text="Envoyer", command=messageAEnvoyer)
 envoyer_button.pack(pady=20)
 
-root.after(100, async_communicate_wrapper)
-root.after(100, start_async_loop)
+ask_for_nickname()
+root.after(100, start_communication)
+
 root.mainloop()
