@@ -31,7 +31,7 @@ def messageAEnvoyer():
     if messageUser:
         chatBox.configure(state="normal") 
         chatBox.insert(ctk.END, f"{nomUtilisateur}: {messageUser}\n")
-        chat=(ctk.END, f"{nomUtilisateur}: {messageUser}\n")
+        chat=(ctk.END, f" {nomUtilisateur}: {messageUser}\n")
         asyncio.run(send_message(chat))
         chatBox.configure(state="disabled")  
         messageUser_box.delete(0, ctk.END)
