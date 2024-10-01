@@ -2,22 +2,6 @@
 import asyncio
 import websockets
 
-<<<<<<< HEAD
-async def send_message():
-    uri = "ws://90.5.227.209:8765"
-    async with websockets.connect(uri) as websocket:
-        # Envoyer un message au serveur
-        message = input("entrer votre message a envoyer : ")
-        await websocket.send(message)
-        print(f"Message envoyé : {message}")
-
-        # Recevoir la réponse du serveur
-        response = await websocket.recv()
-        print(f"Réponse du serveur : {response}")
-
-# Lancer le client
-asyncio.run(send_message())
-=======
 # Fonction pour envoyer des messages au serveur
 async def send_messages(websocket):
     while True:
@@ -51,4 +35,3 @@ async def communicate():
         print(f"Erreur de connexion : {e}")
 
 asyncio.run(communicate())
->>>>>>> ca04a58068c7a7eab9df1e9c77b7b6559e04b73f
