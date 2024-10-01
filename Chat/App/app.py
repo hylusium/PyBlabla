@@ -10,11 +10,10 @@ root = ctk.CTk()
 root.title("Chat Python")
 root.geometry("400x400")
 
-nomUtilisateur = "test"
+nomUtilisateur = ""
 websocket = None
 messageUser = None
 
-# Function to send messages asynchronously
 async def send_messages():
     global websocket, messageUser
     if websocket and messageUser:
@@ -25,7 +24,6 @@ async def send_messages():
         await websocket.send(message)
         print(f"Message envoyé : {message}")
 
-# Function to receive messages from the websocket
 async def receive_messages():
     global websocket
     while True:
@@ -39,7 +37,6 @@ async def receive_messages():
             print("Connexion fermée par le serveur.")
             break
 
-# Function to establish communication with the websocket server
 async def communicate():
     global websocket
     uri = "ws://90.5.227.209:8765"
@@ -50,31 +47,49 @@ async def communicate():
     except Exception as e:
         print(f"Erreur de connexion : {e}")
 
-# Function to handle sending messages from the input box
 def messageAEnvoyer():
     global messageUser
     messageUser = messageUser_box.get().strip()
     if messageUser:
         messageUser_box.delete(0, ctk.END)
-        # Use asyncio.run_coroutine_threadsafe to send messages in the asyncio event loop
         asyncio.run_coroutine_threadsafe(send_messages(), asyncio_loop)
     else:
         ctk.CTkMessagebox.show_warning("Input Error", "Vous ne pouvez pas envoyer un message vide !")
 
-# Function to start the asyncio event loop in a separate thread
 def start_asyncio_loop(loop):
     asyncio.set_event_loop(loop)
     loop.run_forever()
 
-# Create and start the asyncio event loop in a new thread
 asyncio_loop = asyncio.new_event_loop()
 threading.Thread(target=start_asyncio_loop, args=(asyncio_loop,), daemon=True).start()
 
-# Function to start communication with the websocket server
 def start_communication():
     asyncio.run_coroutine_threadsafe(communicate(), asyncio_loop)
 
-# customtkinter UI setup
+def ask_for_nickname():
+    def submit_nickname():
+        global nomUtilisateur
+        entered_nickname = nickname_entry.get().strip()
+        if entered_nickname:
+            nomUtilisateur = entered_nickname
+            nickname_window.destroy()
+        else:
+            ctk.CTkMessagebox.show_warning("Input Error", "Vous devez entrer un pseudo valide!")
+
+    nickname_window = ctk.CTkToplevel(root)
+    nickname_window.title("Enter Nickname")
+    nickname_window.geometry("300x150")
+
+    ctk.CTkLabel(nickname_window, text="Entrez votre pseudo :").pack(pady=10)
+    nickname_entry = ctk.CTkEntry(nickname_window)
+    nickname_entry.pack(pady=5)
+
+    submit_button = ctk.CTkButton(nickname_window, text="Submit", command=submit_nickname)
+    submit_button.pack(pady=10)
+
+    nickname_window.grab_set()
+    nickname_window.transient(root)
+
 chatBoxLabel = ctk.CTkLabel(root, text="Chatbox:")
 chatBoxLabel.pack(pady=5)
 
@@ -90,7 +105,7 @@ messageUser_box.pack(pady=5)
 envoyer_button = ctk.CTkButton(root, text="Envoyer", command=messageAEnvoyer)
 envoyer_button.pack(pady=20)
 
-# Start communication after customtkinter UI is initialized
+ask_for_nickname()
 root.after(100, start_communication)
 
 root.mainloop()
