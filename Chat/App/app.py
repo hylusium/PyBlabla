@@ -19,6 +19,9 @@ async def send_messages():
     global websocket, messageUser
     if websocket and messageUser:
         message = f"{nomUtilisateur}: {messageUser}\n"
+        chatBox.configure(state="normal")
+        chatBox.insert(ctk.END, f"{message}\n")
+        chatBox.configure(state="disabled")
         await websocket.send(message)
         print(f"Message envoyé : {message}")
 
