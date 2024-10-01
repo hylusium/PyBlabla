@@ -33,5 +33,4 @@ async def communicate():
     except Exception as e:
         print(f"Erreur de connexion : {e}")
 
-# Lancer le client WebSocket
 asyncio.run(communicate())
