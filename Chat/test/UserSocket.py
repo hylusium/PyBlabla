@@ -4,35 +4,34 @@ import websockets
 # Fonction pour envoyer des messages au serveur
 async def send_messages(websocket):
     while True:
-        message = input("Entrez votre message à envoyer : ")
+        # Utiliser asyncio pour capturer l'entrée utilisateur sans bloquer
+        message = await asyncio.to_thread(input, "Entrez votre message à envoyer : ")
         await websocket.send(message)
         print(f"Message envoyé : {message}")
 
-# Fonction pour recevoir les messages du serveur
+# Fonction pour recevoir des messages du serveur
 async def receive_messages(websocket):
     while True:
         try:
             response = await websocket.recv()
-            print(f"Réponse du serveur : {response}")
+            print(f"Message reçu du serveur : {response}")
         except websockets.ConnectionClosed:
-            print("Connexion au serveur fermée.")
-            break
-        except Exception as e:
-            print(f"Erreur lors de la réception du message : {e}")
+            print("Connexion fermée par le serveur.")
             break
 
-# Fonction principale
+# Fonction pour gérer la communication client-serveur
 async def communicate():
     uri = "ws://90.5.227.209:8765"
     try:
         async with websockets.connect(uri) as websocket:
-            # Exécuter simultanément l'envoi et la réception des messages
-            await asyncio.gather(
-                send_messages(websocket),
-                receive_messages(websocket)
-            )
-    except Exception as e:
-        print(f"Erreur de connexion au serveur : {e}")
+            # Lancer l'envoi et la réception simultanément
+            send_task = asyncio.create_task(send_messages(websocket))
+            receive_task = asyncio.create_task(receive_messages(websocket))
 
-# Lancer l'application
+            # Attendre que l'une des tâches se termine (en cas d'erreur ou de déconnexion)
+            await asyncio.gather(send_task, receive_task)
+    except Exception as e:
+        print(f"Erreur de connexion : {e}")
+
+# Lancer le client WebSocket
 asyncio.run(communicate())
